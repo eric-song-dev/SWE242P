@@ -7,10 +7,12 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
 /*
+ * UDPClient
  * 1. Create DatagramSocket
- * 2. Create DatagramPacket (with server IP + port)
- * 3. Send/Recv
- * 4. Close
+ * 2. Build DatagramPacket with server address and port
+ * 3. Send packet
+ * 4. Receive packet
+ * 5. Close
  */
 
 public class UDPClient {

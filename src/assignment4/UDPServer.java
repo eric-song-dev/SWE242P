@@ -8,9 +8,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /*
- * 1. Create DatagramSocket (bind port)
- * 2. Recv/Send
- * 3. Close
+ * UDPServer
+ * 1. Create DatagramSocket(bind)
+ * 2. Recv packet
+ * 4. Send response (using sender's IP/port)
+ * 5. Close
  */
 
 public class UDPServer {
