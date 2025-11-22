@@ -9,7 +9,7 @@ import java.net.*;
  * 2. Bind Port
  * 3. Listen
  * 4. Accept Connection
- * 5. Recv/Send
+ * 5. Send/Recv
  * 6. Close
  */
 public class FileServer {
