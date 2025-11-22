@@ -21,7 +21,7 @@ public class UDPServer {
 
         directory = new File(args[0]);
         if (!directory.exists() || !directory.isDirectory()) {
-            System.out.println("[Error] Invalid directory");
+            System.err.println("[Error] Invalid directory");
             return;
         }
 
@@ -59,7 +59,7 @@ public class UDPServer {
                     int chunkId = Integer.parseInt(command.split(" ")[1]);
                     handleIndexChunk(socket, clientAddress, clientPort, chunkId);
                 } catch (Exception e) {
-                    System.out.println("[Error] Invalid FETCH_INDEX command");
+                    System.err.println("[Error] Invalid FETCH_INDEX command");
                 }
             } else if (command.startsWith("INFO ")) {
                 String filename = command.substring(5).trim();
@@ -71,7 +71,7 @@ public class UDPServer {
                     int chunkId = Integer.parseInt(parts[2]);
                     handleFileChunk(socket, clientAddress, clientPort, filename, chunkId);
                 } else {
-                    System.out.println("[Error] Invalid FETCH_FILE command");
+                    System.err.println("[Error] Invalid FETCH_FILE command");
                 }
             } else {
                 sendStringResponse(socket, clientAddress, clientPort, "Unknown command");
@@ -163,6 +163,33 @@ public class UDPServer {
                 byte[] dataToSend = packetBuffer.array();
 
                 DatagramPacket packet = new DatagramPacket(dataToSend, dataToSend.length, address, port);
+
+                // START: DEBUG / TESTING SECTION
+                // ---------------------------------------------------------
+
+                // OPTION 1: Simulate Packet Loss (Recommended for testing reliability)
+                // Set probability to 0.3 (30% loss) or 0.5 (50% loss)
+                /*
+                if (Math.random() < 0.3) {
+                    System.out.println("[DEBUG] Simulating PACKET LOSS for Chunk " + chunkId);
+                    return; // Do not send the packet, forcing client to timeout
+                }
+                */
+
+                // OPTION 2: Simulate Network Latency (Delay)
+                // Client timeout is 2000ms, so we sleep for 2500ms to force timeout
+                /*
+                try {
+                    System.out.println("[DEBUG] Simulating LATENCY for Chunk " + chunkId);
+                    Thread.sleep(2500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                */
+
+                // ---------------------------------------------------------
+                // END: DEBUG / TESTING SECTION
+
                 socket.send(packet);
             }
         }

@@ -36,7 +36,7 @@ public class UDPClient {
                     String filename = input.substring(4).trim();
                     getFile(socket, serverAddress, filename);
                 } else {
-                    System.out.println("[Warning] Unexpected command");
+                    System.err.println("[Warning] Unexpected command");
                 }
             }
         } catch (IOException e) {
@@ -101,16 +101,16 @@ public class UDPClient {
                     totalChunks = Long.parseLong(res.split(" ")[1]);
                     break;
                 } else if (res.equals("error")) {
-                    System.out.println("[ERROR] File not found");
+                    System.err.println("[ERROR] File not found");
                     return null;
                 }
             } catch (SocketTimeoutException e) {
-                System.out.println("[Warning] Timeout waiting for info, retry (" + (retries + 1) + "/" + MAX_RETRIES + ")");
+                System.err.println("[Warning] Timeout waiting for info, retry (" + (retries + 1) + "/" + MAX_RETRIES + ")");
             }
         }
 
         if (totalChunks == -1) {
-            System.out.println("[ERROR] Failed to get metadata");
+            System.err.println("[ERROR] Failed to get metadata");
             return null;
         }
 
@@ -129,33 +129,40 @@ public class UDPClient {
                     String cmd = fetchCommand + " " + i;
                     sendPacket(socket, address, cmd);
 
-                    byte[] dataBuffer = new byte[CHUNK_SIZE + HEADER_SIZE];
-                    DatagramPacket dataPacket = new DatagramPacket(dataBuffer, dataBuffer.length);
-                    socket.receive(dataPacket);
+                    // Inner loop to handle incoming packets for this specific attempt
+                    // Do not have to immediately resend the request if it is a wrong packet
+                    while (true) {
+                        byte[] dataBuffer = new byte[CHUNK_SIZE + HEADER_SIZE];
+                        DatagramPacket dataPacket = new DatagramPacket(dataBuffer, dataBuffer.length);
 
-                    ByteBuffer wrapped = ByteBuffer.wrap(dataPacket.getData(), 0, dataPacket.getLength());
+                        // This receive() will throw SocketTimeoutException if legitimate timeout occurs
+                        socket.receive(dataPacket);
 
-                    // Read the first 4 bytes as int
-                    int receivedSeqNum = wrapped.getInt();
+                        ByteBuffer wrapped = ByteBuffer.wrap(dataPacket.getData(), 0, dataPacket.getLength());
 
-                    // Verify sequence number
-                    if (receivedSeqNum == i) {
-                        // Correct packet, extract data starting from offset 4
-                        completeBytes.write(dataPacket.getData(), HEADER_SIZE, dataPacket.getLength() - HEADER_SIZE);
-                        received = true;
-                    } else {
-                        // Received wrong chunk like delayed packet from previous retry, just gnore it
-                        System.err.println(" [Warning] Ignored duplicate or wrong chunk: " + receivedSeqNum + ", expected: " + i);
+                        // Read the first 4 bytes as int
+                        int receivedSeqNum = wrapped.getInt();
+
+                        // Verify sequence number
+                        if (receivedSeqNum == i) {
+                            // Correct packet, extract data starting from offset 4
+                            completeBytes.write(dataPacket.getData(), HEADER_SIZE, dataPacket.getLength() - HEADER_SIZE);
+                            received = true;
+                            // Success, break the inner receive loop
+                            break;
+                        } else {
+                            // Received wrong chunk like delayed packet from previous retry, just gnore it
+                            System.err.println("[Warning] Ignored duplicate or wrong chunk: " + receivedSeqNum + ", expected: " + i);
+                        }
                     }
-
                 } catch (SocketTimeoutException e) {
                     retries++;
-                    System.out.println("[Warning] Timeout chunk " + i + ", retry (" + retries + "/" + MAX_RETRIES + ")");
+                    System.err.println("[Warning] Timeout chunk " + i + ", retry (" + retries + "/" + MAX_RETRIES + ")");
                 }
             }
 
             if (!received) {
-                System.out.println("[Error] Failed to retrieve chunk " + i);
+                System.err.println("[Error] Failed to retrieve chunk " + i);
                 return null;
             }
         }
