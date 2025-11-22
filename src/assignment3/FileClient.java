@@ -9,6 +9,7 @@ import java.util.Scanner;
  * 1. Create Socket
  * 2. Connect Server
  * 3. Send/Recv
+ * 4. Close
  */
 public class FileClient {
 
