@@ -4,6 +4,7 @@ import java.io.*;
 import java.net.*;
 import java.util.Scanner;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 
 public class UDPClient {
     private static final String SERVER_ADDRESS = "localhost";
@@ -43,7 +44,7 @@ public class UDPClient {
     }
 
     private static void sendPacket(DatagramSocket socket, InetAddress address, String text) throws IOException {
-        byte[] data = text.getBytes();
+        byte[] data = text.getBytes(StandardCharsets.UTF_8);
         DatagramPacket packet = new DatagramPacket(data, data.length, address, SERVER_PORT);
         socket.send(packet);
     }
@@ -56,7 +57,7 @@ public class UDPClient {
             DatagramPacket response = new DatagramPacket(buffer, buffer.length);
             socket.receive(response);
 
-            String list = new String(response.getData(), 0, response.getLength());
+            String list = new String(response.getData(), 0, response.getLength(), StandardCharsets.UTF_8);
             System.out.println("--- Files on Server ---");
             System.out.println(list);
         } catch (SocketTimeoutException e) {
@@ -78,7 +79,7 @@ public class UDPClient {
                     DatagramPacket response = new DatagramPacket(buffer, buffer.length);
                     socket.receive(response);
 
-                    String res = new String(response.getData(), 0, response.getLength()).trim();
+                    String res = new String(response.getData(), 0, response.getLength(), StandardCharsets.UTF_8).trim();
                     System.out.println(res);
                     if (res.startsWith("ok ")) {
                         totalChunks = Long.parseLong(res.split(" ")[1]);
@@ -100,7 +101,7 @@ public class UDPClient {
             System.out.println("File found, size: " + totalChunks + " chunks");
             System.out.println("Start receiving");
 
-            StringBuilder completeContent = new StringBuilder();
+            ByteArrayOutputStream completeBytes = new ByteArrayOutputStream();
 
             for (int i = 0; i < totalChunks; i++) {
                 boolean received = false;
@@ -124,8 +125,7 @@ public class UDPClient {
                         // Verify Sequence Number
                         if (receivedSeqNum == i) {
                             // Correct packet, extract data starting from offset 4
-                            String chunkContent = new String(dataPacket.getData(), 4, dataPacket.getLength() - 4);
-                            completeContent.append(chunkContent);
+                            completeBytes.write(dataPacket.getData(), HEADER_SIZE, dataPacket.getLength() - HEADER_SIZE);
                             received = true;
                         } else {
                             // Received wrong chunk like delayed packet from previous retry, just gnore it
@@ -145,7 +145,7 @@ public class UDPClient {
             }
 
             System.out.println("\n--- Start of File: " + filename + " ---");
-            System.out.println(completeContent.toString());
+            System.out.println(new String(completeBytes.toByteArray(), StandardCharsets.UTF_8));
             System.out.println("--- End of File ---\n");
         } catch (IOException e) {
             e.printStackTrace();

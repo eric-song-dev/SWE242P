@@ -3,6 +3,9 @@ package assignment4;
 import java.io.*;
 import java.net.*;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class UDPServer {
     private static final int PORT = 12345;
@@ -12,7 +15,7 @@ public class UDPServer {
 
     public static void main(String[] args) {
         if (args.length < 1) {
-                System.out.println("Usage: java assignment4.UDPServer <directory_path>");
+            System.out.println("Usage: java assignment4.UDPServer <directory_path>");
             return;
         }
 
@@ -25,40 +28,44 @@ public class UDPServer {
         System.out.println("Server started on port " + PORT);
         System.out.println("Files directory: " + directory.getAbsolutePath());
 
+        ExecutorService threadPool = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         try (DatagramSocket socket = new DatagramSocket(PORT)) {
-            byte[] receiveBuffer = new byte[1024];
-
             while (true) {
-                // Receive packet from client
+                // Allocate new buffer for each request to ensure thread safety
+                byte[] receiveBuffer = new byte[1024];
                 DatagramPacket requestPacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
                 socket.receive(requestPacket);
 
-                String command = new String(requestPacket.getData(), 0, requestPacket.getLength()).trim();
-                System.out.println("Received: " + command);
+                threadPool.execute(() -> {
+                    try {
+                        String command = new String(requestPacket.getData(), 0, requestPacket.getLength(), StandardCharsets.UTF_8).trim();
+                        System.out.println("Received: " + command);
 
-                InetAddress clientAddress = requestPacket.getAddress();
-                int clientPort = requestPacket.getPort();
+                        InetAddress clientAddress = requestPacket.getAddress();
+                        int clientPort = requestPacket.getPort();
 
-                // Handle Commands
-                if (command.equals("INDEX")) {
-                    handleIndex(socket, clientAddress, clientPort);
-                } else if (command.startsWith("INFO ")) {
-                    // Client asks for file metadata (existence/chunks)
-                    String filename = command.substring(5).trim();
-                    handleFileInfo(socket, clientAddress, clientPort, filename);
-                } else if (command.startsWith("FETCH ")) {
-                    // Client asks for a specific chunk: "FETCH <filename> <chunkID>"
-                    String[] parts = command.split(" ");
-                    if (parts.length == 3) {
-                        String filename = parts[1];
-                        int chunkId = Integer.parseInt(parts[2]);
-                        handleFileChunk(socket, clientAddress, clientPort, filename, chunkId);
-                    } else {
-                        System.out.println("[Error] Command format wrong");
+                        // Handle Commands
+                        if (command.equals("INDEX")) {
+                            handleIndex(socket, clientAddress, clientPort);
+                        } else if (command.startsWith("INFO ")) {
+                            String filename = command.substring(5).trim();
+                            handleFileInfo(socket, clientAddress, clientPort, filename);
+                        } else if (command.startsWith("FETCH ")) {
+                            String[] parts = command.split(" ");
+                            if (parts.length == 3) {
+                                String filename = parts[1];
+                                int chunkId = Integer.parseInt(parts[2]);
+                                handleFileChunk(socket, clientAddress, clientPort, filename, chunkId);
+                            } else {
+                                System.out.println("[Error] Command format wrong");
+                            }
+                        } else {
+                            sendStringResponse(socket, clientAddress, clientPort, "Unknown command");
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
-                } else {
-                    sendStringResponse(socket, clientAddress, clientPort, "Unknown command");
-                }
+                });
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -66,7 +73,7 @@ public class UDPServer {
     }
 
     private static void sendStringResponse(DatagramSocket socket, InetAddress address, int port, String message) throws IOException {
-        byte[] data = message.getBytes();
+        byte[] data = message.getBytes(StandardCharsets.UTF_8);
         DatagramPacket packet = new DatagramPacket(data, data.length, address, port);
         socket.send(packet);
     }
