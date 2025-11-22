@@ -36,36 +36,45 @@ public class UDPServer {
                 DatagramPacket requestPacket = new DatagramPacket(receiveBuffer, receiveBuffer.length);
                 socket.receive(requestPacket);
 
-                threadPool.execute(() -> {
-                    try {
-                        String command = new String(requestPacket.getData(), 0, requestPacket.getLength(), StandardCharsets.UTF_8).trim();
-                        System.out.println("Received: " + command);
+                threadPool.execute(() -> handleClientRequest(socket, requestPacket));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
-                        InetAddress clientAddress = requestPacket.getAddress();
-                        int clientPort = requestPacket.getPort();
+    private static void handleClientRequest(DatagramSocket socket, DatagramPacket requestPacket) {
+        try {
+            String command = new String(requestPacket.getData(), 0, requestPacket.getLength(), StandardCharsets.UTF_8).trim();
+            System.out.println("Received: " + command);
 
-                        // Handle Commands
-                        if (command.equals("INDEX")) {
-                            handleIndex(socket, clientAddress, clientPort);
-                        } else if (command.startsWith("INFO ")) {
-                            String filename = command.substring(5).trim();
-                            handleFileInfo(socket, clientAddress, clientPort, filename);
-                        } else if (command.startsWith("FETCH ")) {
-                            String[] parts = command.split(" ");
-                            if (parts.length == 3) {
-                                String filename = parts[1];
-                                int chunkId = Integer.parseInt(parts[2]);
-                                handleFileChunk(socket, clientAddress, clientPort, filename, chunkId);
-                            } else {
-                                System.out.println("[Error] Command format wrong");
-                            }
-                        } else {
-                            sendStringResponse(socket, clientAddress, clientPort, "Unknown command");
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                });
+            InetAddress clientAddress = requestPacket.getAddress();
+            int clientPort = requestPacket.getPort();
+
+            // Handle Commands
+            if (command.equals("INDEX")) {
+                handleIndexInfo(socket, clientAddress, clientPort);
+            } else if (command.startsWith("FETCH_INDEX ")) {
+                try {
+                    int chunkId = Integer.parseInt(command.split(" ")[1]);
+                    handleIndexChunk(socket, clientAddress, clientPort, chunkId);
+                } catch (Exception e) {
+                    System.out.println("[Error] Invalid FETCH_INDEX command");
+                }
+            } else if (command.startsWith("INFO ")) {
+                String filename = command.substring(5).trim();
+                handleFileInfo(socket, clientAddress, clientPort, filename);
+            } else if (command.startsWith("FETCH_FILE ")) {
+                String[] parts = command.split(" ");
+                if (parts.length == 3) {
+                    String filename = parts[1];
+                    int chunkId = Integer.parseInt(parts[2]);
+                    handleFileChunk(socket, clientAddress, clientPort, filename, chunkId);
+                } else {
+                    System.out.println("[Error] Invalid FETCH_FILE command");
+                }
+            } else {
+                sendStringResponse(socket, clientAddress, clientPort, "Unknown command");
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -78,7 +87,7 @@ public class UDPServer {
         socket.send(packet);
     }
 
-    private static void handleIndex(DatagramSocket socket, InetAddress address, int port) throws IOException {
+    private static String getFileListString() {
         File[] files = directory.listFiles();
         StringBuilder sb = new StringBuilder();
         if (files != null) {
@@ -88,9 +97,32 @@ public class UDPServer {
                 }
             }
         }
-        // Send the list. Note: If list is huge, this might exceed UDP limit,
-        // but for this assignment assuming list fits in one packet is usually acceptable.
-        sendStringResponse(socket, address, port, sb.toString());
+        return sb.toString();
+    }
+
+    // Handle INFO command: Calculate chunks for the index string
+    private static void handleIndexInfo(DatagramSocket socket, InetAddress address, int port) throws IOException {
+        byte[] listBytes = getFileListString().getBytes(StandardCharsets.UTF_8);
+        long totalChunks = (listBytes.length + CHUNK_SIZE - 1) / CHUNK_SIZE;
+        sendStringResponse(socket, address, port, "ok " + totalChunks);
+    }
+
+    // Handle FETCH_INDEX command: Send a specific chunk of the index string
+    private static void handleIndexChunk(DatagramSocket socket, InetAddress address, int port, int chunkId) throws IOException {
+        byte[] listBytes = getFileListString().getBytes(StandardCharsets.UTF_8);
+
+        int start = chunkId * CHUNK_SIZE;
+        if (start >= listBytes.length) return; // Out of bounds
+
+        int length = Math.min(CHUNK_SIZE, listBytes.length - start);
+
+        ByteBuffer packetBuffer = ByteBuffer.allocate(HEADER_SIZE + length);
+        packetBuffer.putInt(chunkId);
+        packetBuffer.put(listBytes, start, length);
+
+        byte[] dataToSend = packetBuffer.array();
+        DatagramPacket packet = new DatagramPacket(dataToSend, dataToSend.length, address, port);
+        socket.send(packet);
     }
 
     // Handle INFO command: Check if file exists and calculate total chunks
@@ -106,7 +138,7 @@ public class UDPServer {
         }
     }
 
-    // Handle FETCH command: Read specific chunk from file
+    // Handle FETCH_FILE command: Send a specific chunk of the file
     private static void handleFileChunk(DatagramSocket socket, InetAddress address, int port, String filename, int chunkId) throws IOException {
         File file = new File(directory, filename);
         if (!file.exists()) return;
