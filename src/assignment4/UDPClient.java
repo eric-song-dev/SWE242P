@@ -6,8 +6,15 @@ import java.util.Scanner;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
+/*
+ * 1. Create DatagramSocket
+ * 2. Create DatagramPacket (with server IP + port)
+ * 3. Send/Recv
+ * 4. Close
+ */
+
 public class UDPClient {
-    private static final String SERVER_ADDRESS = "localhost";
+    private static final String SERVER_ADDRESS = "127.0.0.1";
     private static final int SERVER_PORT = 12345;
     private static final int TIMEOUT = 2000;
     private static final int MAX_RETRIES = 5;

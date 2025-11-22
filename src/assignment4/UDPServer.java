@@ -7,6 +7,12 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/*
+ * 1. Create DatagramSocket (bind port)
+ * 2. Recv/Send
+ * 3. Close
+ */
+
 public class UDPServer {
     private static final int PORT = 12345;
     private static final int CHUNK_SIZE = 1024;
