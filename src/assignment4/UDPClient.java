@@ -45,7 +45,7 @@ public class UDPClient {
                     String filename = input.substring(4).trim();
                     getFile(socket, serverAddress, filename);
                 } else {
-                    System.err.println("[Warning] Unexpected command");
+                    System.out.println("[Warning] Unexpected command");
                 }
             }
         } catch (IOException e) {
@@ -110,16 +110,16 @@ public class UDPClient {
                     totalChunks = Long.parseLong(res.split(" ")[1]);
                     break;
                 } else if (res.equals("error")) {
-                    System.err.println("[ERROR] File not found");
+                    System.out.println("[ERROR] File not found");
                     return null;
                 }
             } catch (SocketTimeoutException e) {
-                System.err.println("[Warning] Timeout waiting for info, retry (" + (retries + 1) + "/" + MAX_RETRIES + ")");
+                System.out.println("[Warning] Timeout waiting for info, retry (" + (retries + 1) + "/" + MAX_RETRIES + ")");
             }
         }
 
         if (totalChunks == -1) {
-            System.err.println("[ERROR] Failed to get metadata");
+            System.out.println("[ERROR] Failed to get metadata");
             return null;
         }
 
@@ -161,17 +161,17 @@ public class UDPClient {
                             break;
                         } else {
                             // Received wrong chunk like delayed packet from previous retry, just gnore it
-                            System.err.println("[Warning] Ignored duplicate or wrong chunk: " + receivedSeqNum + ", expected: " + i);
+                            System.out.println("[Warning] Ignored duplicate or wrong chunk: " + receivedSeqNum + ", expected: " + i);
                         }
                     }
                 } catch (SocketTimeoutException e) {
                     retries++;
-                    System.err.println("[Warning] Timeout chunk " + i + ", retry (" + retries + "/" + MAX_RETRIES + ")");
+                    System.out.println("[Warning] Timeout chunk " + i + ", retry (" + retries + "/" + MAX_RETRIES + ")");
                 }
             }
 
             if (!received) {
-                System.err.println("[Error] Failed to retrieve chunk " + i);
+                System.out.println("[Error] Failed to retrieve chunk " + i);
                 return null;
             }
         }

@@ -29,7 +29,7 @@ public class UDPServer {
 
         directory = new File(args[0]);
         if (!directory.exists() || !directory.isDirectory()) {
-            System.err.println("[Error] Invalid directory");
+            System.out.println("[Error] Invalid directory");
             return;
         }
 
@@ -67,7 +67,7 @@ public class UDPServer {
                     int chunkId = Integer.parseInt(command.split(" ")[1]);
                     handleIndexChunk(socket, clientAddress, clientPort, chunkId);
                 } catch (Exception e) {
-                    System.err.println("[Error] Invalid FETCH_INDEX command");
+                    System.out.println("[Error] Invalid FETCH_INDEX command");
                 }
             } else if (command.startsWith("INFO ")) {
                 String filename = command.substring(5).trim();
@@ -79,7 +79,7 @@ public class UDPServer {
                     int chunkId = Integer.parseInt(parts[2]);
                     handleFileChunk(socket, clientAddress, clientPort, filename, chunkId);
                 } else {
-                    System.err.println("[Error] Invalid FETCH_FILE command");
+                    System.out.println("[Error] Invalid FETCH_FILE command");
                 }
             } else {
                 sendStringResponse(socket, clientAddress, clientPort, "Unknown command");

@@ -56,7 +56,7 @@ public class FileServer {
 
         File directory = new File(args[0]);
         if (!directory.exists() || !directory.isDirectory()) {
-            System.err.println("[Error] The path specified is not a valid directory");
+            System.out.println("[Error] The path specified is not a valid directory");
             return;
         }
 
@@ -92,11 +92,11 @@ public class FileServer {
 
                     System.out.println("Closing connection");
                 } catch (IOException e) {
-                    System.err.println("[Error] Establish connection, e: " + e.getMessage());
+                    System.out.println("[Error] Establish connection, e: " + e.getMessage());
                 }
             }
         } catch (IOException e) {
-            System.err.println("[Error] Could not start server, e: " + e.getMessage());
+            System.out.println("[Error] Could not start server, e: " + e.getMessage());
         }
     }
 
@@ -125,7 +125,7 @@ public class FileServer {
                     out.println(line);
                 }
             } catch (IOException e) {
-                System.err.println("[Error] Read " + filename + " failed, e: " + e.getMessage());
+                System.out.println("[Error] Read " + filename + " failed, e: " + e.getMessage());
             }
         } else {
             out.println("error");

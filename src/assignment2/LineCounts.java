@@ -18,7 +18,7 @@ public class LineCounts {
                 int count = countLines(filename);
                 System.out.println(filename + ": " + count);
             } catch (IOException e) {
-                System.err.println("[Error] reading " + filename + " failed, e: " + e.getMessage());
+                System.out.println("[Error] reading " + filename + " failed, e: " + e.getMessage());
             }
         }
     }

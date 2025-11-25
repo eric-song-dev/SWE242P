@@ -56,17 +56,17 @@ public class FileClient {
                             System.out.println(line);
                         }
                     } else if ("error".equals(status)) {
-                        System.err.println("[Error] File not found");
+                        System.out.println("[Error] File not found");
                     } else {
-                        System.err.println("[Warning] Unexpected status: " + status);
+                        System.out.println("[Warning] Unexpected status: " + status);
                     }
                 } else {
-                    System.err.println("[Warning] Unexpected command");
+                    System.out.println("[Warning] Unexpected command");
                 }
                 System.out.println("------------------------");
 
             } catch (IOException e) {
-                System.err.println("[Error] Connection error, e: " + e.getMessage());
+                System.out.println("[Error] Connection error, e: " + e.getMessage());
             }
         }
 
