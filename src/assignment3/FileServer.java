@@ -11,6 +11,37 @@ import java.net.*;
  * 4. Accept Connection
  * 5. Send/Recv
  * 6. Close
+ *
+ * Diagram & State Transitions:
+ * CLIENT STATE                                           SERVER STATE
+ * ------------                                           ------------
+ * [CLOSED]                                                [CLOSED]
+ * |                                                       |
+ * |                                                   (Passive Open)
+ * |                                                       |
+ * |                                                    [LISTEN]
+ * |                                                       |
+ * | ------------------- SYN -------------------------->   |
+ * [SYN_SENT]           (Seq = client_isn)                      |
+ * |                                                       |
+ * |                                                  [SYN_RCVD]
+ * |                                                       |
+ * | <-------------- SYN + ACK -------------------------   |
+ * |       (Seq = server_isn, Ack = client_isn + 1)        |
+ * |                                                       |
+ * [ESTABLISHED]                                                 |
+ * |                                                       |
+ * | ------------------- ACK -------------------------->   |
+ * |         (Ack = server_isn + 1)                        |
+ * |                                                       |
+ * |                                                 [ESTABLISHED]
+ * v                                                       v
+ * (Data Transfer)                                         (Data Transfer)
+ * ------------------------------------------------------------------------------
+ * Key Variables:
+ * - ISN: Initial Sequence Number (Randomly generated to prevent spoofing)
+ * - SYN: Synchronize flag (used to initiate connection)
+ * - ACK: Acknowledge flag (used to confirm receipt)
  */
 public class FileServer {
 
